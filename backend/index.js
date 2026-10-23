@@ -1,15 +1,15 @@
 // Entrada del servicio `api` en Vercel (`vercel.json`: root backend, framework
-// express, entrypoint index.js).
+// express, SIN `entrypoint` declarado: lo detecta el preset por nombre de archivo).
 //
-// Por que este archivo se llama `index.js`: el preset de Express de Vercel NO usa
-// el `entrypoint` declarado — detecta la aplicacion buscando un archivo que
-// importe `express` en `app.*`, `index.*`, `server.*`, `src/app.*`, `src/index.*`,
-// `src/server.*` (en ese orden). Mientras la entrada se llamo `vercel.js` el
-// preset nunca la miro, tomo `src/app.ts` (que solo exporta `crearApp` por nombre,
-// sin default ni `listen`) y de ahi salio SIEMPRE el mismo 500
-// `FUNCTION_INVOCATION_FAILED` de Vercel: la funcion existia, pero no tenia app
-// que atender. Con `index.js` la deteccion y el `entrypoint` apuntan al mismo
-// archivo y ya no hay ambiguedad.
+// Por que este archivo se llama `index.js`: el preset de Express de Vercel detecta
+// la aplicacion buscando un archivo que importe `express` en `app.*`, `index.*`,
+// `server.*`, `src/app.*`, `src/index.*`, `src/server.*` (en ese orden), y exige
+// que ese archivo exporte la app por defecto o escuche un puerto. `vercel.js` no
+// esta en esa lista — era un nombre que solo existia para el `entrypoint` declarado
+// — y mientras la entrada se llamaba asi, el 500 `FUNCTION_INVOCATION_FAILED` no
+// cambio en absoluto entre las siete versiones que se probaron (el preset habria
+// caido en `src/app.ts`, que solo exporta `crearApp` por nombre: ni default ni
+// `listen`). `index.js` cumple las dos cosas: nombre reservado y app por defecto.
 //
 // Por que envuelve en una app de Express y no re-exporta la app compilada: un
 // re-export estatico (`export { default } from './dist/vercel.js'`) hace que
