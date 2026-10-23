@@ -29,10 +29,10 @@ Contiene tres servicios que comparten un mismo despliegue:
 | `VITE_BASE`            | Project Settings → Environment | `/panel/` (solo la consume el panel; la consulta la ignora)    |
 | `VITE_LIVE_UPDATE_URL` | Project Settings → Environment | `https://<este-proyecto>.vercel.app/live-updates/check.json`   |
 
-Las tres primeras son obligatorias para que el API arranque; sin `DATABASE_URL` o
-`JWT_SECRET` el módulo de la función revienta al cargar (es a propósito, no se levanta
-con credenciales por defecto). No hace falta `ORIGINES_PERMITIDAS`: al ser mismo origen
-el navegador no manda preflight.
+Las tres primeras son obligatorias para que el API sirva datos, pero la función arranca
+aunque falten (la lectura del entorno es perezosa a propósito): `GET /api/health` responde
+siempre y dice cuáles faltan y si el Postgres del pooler contesta. No hace falta
+`ORIGINES_PERMITIDAS`: al ser mismo origen el navegador no manda preflight.
 
 Copia `.env.example` → `apps/consulta/.env` y `apps/admin/.env` solo para desarrollo local.
 En Vercel las variables se ponen en el panel; no se sube ningún `.env`.
@@ -66,14 +66,19 @@ rutas públicas y las variables compartidas.
 
 ### Cómo está armado el servicio `api`
 
-- `framework: express` + `entrypoint: vercel.js`: Vercel convierte la app en una
-  única **Vercel Function** con Fluid compute. `backend/vercel.js` es un reenvío que sí
-  viaja en el repo y apunta a `dist/vercel.js`, que es `backend/src/vercel.ts` compilado
-  (`export default crearApp()`, sin `listen` porque en una función no hay proceso
-  persistente). **El `entrypoint` tiene que existir en el código fuente**: Vercel lo
-  valida *antes* de correr la `buildCommand`, por eso no puede ser `dist/…`
-  (`ENTRYPOINT_NOT_FOUND`). `src/server.ts` (el `listen` de siempre) se queda para el
-  monorepo, Render o cualquier contenedor.
+- `framework: express` + `entrypoint: index.cjs`: Vercel convierte la app en una
+  única **Vercel Function** con Fluid compute. La entrada es **CommonJS** aunque
+  `backend/package.json` sea `type: module`: el runtime de la función carga el archivo
+  con `require()` y requerir un módulo ESM mata la función antes de la primera petición,
+  que es exactamente la página genérica 500 `FUNCTION_INVOCATION_FAILED` que devolvió el
+  servicio durante once despliegues. `backend/index.cjs` monta su propia app de Express y
+  dentro carga `dist/vercel.js` (`backend/src/vercel.ts` compilado, `export default
+  crearApp()` sin `listen`) con un `import()` dinámico: si el grafo falla, el motivo se
+  lee en el JSON de la respuesta en lugar de quedar bajo la página de Vercel. **El
+  `entrypoint` tiene que existir en el código fuente** — Vercel lo valida *antes* de
+  correr la `buildCommand`, por eso no puede ser `dist/…` (`ENTRYPOINT_NOT_FOUND`) — y
+  **hay que declararlo**: sin `entrypoint` el build del servicio falla. `src/server.ts`
+  (el `listen` de siempre) se queda para el monorepo y para cualquier contenedor.
 - `buildCommand: npx prisma generate && npm run build`: el cliente Prisma generado NO
   viaja en el espejo (`src/generated` está excluido e ignorado), por eso hay que
   generarlo en el build. `prisma generate` no toca la base (el placeholder de
