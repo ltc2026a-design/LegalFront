@@ -1,27 +1,24 @@
 // Entrada que ve Vercel: el servicio `api` de `vercel.json` declara
-// "entrypoint": "vercel.js".
+// "framework": "node" + "entrypoint": "vercel.js".
 //
-// Por que no es `dist/vercel.js` directamente: Vercel valida el entrypoint
-// contra el CODIGO FUENTE, antes de correr la buildCommand, y `dist/` todavia
-// no existe ahi (revienta con ENTRYPOINT_NOT_FOUND).
+// Por que `node` y no `express`: con el preset de Express el default export tiene
+// que ser la app real, y el wrapper del preset se ejecuta al cargar la funcion,
+// antes que cualquier try/catch propio. Eso produce exactamente lo unico que este
+// despliegue devolvio siete veces: 500 `FUNCTION_INVOCATION_FAILED` con la pagina
+// generica de Vercel por encima, sin JSON y sin stack. Con el runtime Node plano
+// el handler ES el default export, y aqui si se puede capturar todo.
 //
-// Por que el `import()` es perezoso, dentro del handler: con un re-export
-// estatico (`export { default } from './dist/vercel.js'`) cualquier fallo del
-// grafo de modulos — que falte una variable de entorno, que no viaje el
-// binario nativo de argon2 — ocurre antes de la primera peticion y Vercel solo
-// muestra su pagina genérica `FUNCTION_INVOCATION_FAILED`, sin stack y sin
-// forma de leerlo desde fuera. Cargando la app al atender la peticion, el
-// motivo se responde en JSON (nombre de la variable, nunca su valor) y el
-// despliegue se puede diagnosticar con un simple `curl`.
+// Por que el `import()` es perezoso: si el grafo de modulos falla — que falte una
+// variable de entorno, que no viaje el binario nativo de argon2, que `dist/` no
+// este en el bundle — el motivo se responde en JSON en vez de quedar oculto bajo
+// la pagina de Vercel. Se prueban dos especificadores porque el bundle del runtime
+// reescribe las rutas: el literal (que el trazador de dependencias si ve y por eso
+// copia `dist/` a la funcion) y el relativo a `import.meta.url` (que resuelve el
+// `dist/` real cuando el literal apunta al directorio equivocado).
 //
-// Por que el archivo se llama `vercel.js` y no `server.js`: el preset de
-// Express reserva `app.*`, `index.*` y `server.*` (en la raiz y en `src/`) para
-// detectar la aplicacion, y con `server.*` espera el patron de `app.listen`.
-// Con `entrypoint: "vercel.js"` la funcion si se ejecuto; renombrarla a
-// `server.js` volvio a la pagina generica sin JSON. Y la ruta se resuelve con
-// `import.meta.url` porque el preset reescribe la entrada: con el literal
-// `'./dist/vercel.js'` busco `/var/task/vercel.js` en vez del `dist/` real.
-const MARCA = 'api-vercel-v6';
+// Por que el archivo se llama `vercel.js` y no `server.js`: el preset de Express
+// reserva `app.*`, `index.*` y `server.*` para detectar la aplicacion.
+const MARCA = 'api-vercel-v7';
 const CLAVES = [
   'DATABASE_URL',
   'JWT_SECRET',
@@ -32,14 +29,22 @@ const CLAVES = [
 ];
 
 let app;
-let fallo;
+let intentos = [];
 
 async function cargar() {
-  if (app || fallo) return;
-  try {
-    ({ default: app } = await import(new URL('./dist/vercel.js', import.meta.url)));
-  } catch (error) {
-    fallo = error;
+  if (app) return;
+  intentos = [];
+  const opciones = [
+    () => import('./dist/vercel.js'),
+    () => import(new URL('./dist/vercel.js', import.meta.url)),
+  ];
+  for (const opcion of opciones) {
+    try {
+      ({ default: app } = await opcion());
+      return;
+    } catch (error) {
+      intentos.push({ tipo: error?.name, detalle: ocultar(error?.message) });
+    }
   }
 }
 
@@ -60,13 +65,12 @@ function responder(res, estado, cuerpo) {
 
 export default async function handler(req, res) {
   await cargar();
-  if (fallo) {
+  if (!app) {
     responder(res, 200, {
       ok: false,
       marca: MARCA,
       error: 'la app no se pudo cargar dentro de la funcion',
-      tipo: fallo?.name,
-      detalle: ocultar(fallo?.message),
+      intentos,
       presentes: Object.fromEntries(
         CLAVES.map((clave) => [clave, Boolean(process.env[clave]?.trim())]),
       ),

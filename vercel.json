@@ -54,7 +54,7 @@
     },
     "api": {
       "root": "backend",
-      "framework": "express",
+      "framework": "node",
       "installCommand": "npm install",
       "buildCommand": "npx prisma generate && npm run build",
       "entrypoint": "vercel.js"
