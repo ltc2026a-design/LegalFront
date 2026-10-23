@@ -1,0 +1,9 @@
+{
+  "version": "2026.10.23.1",
+  "url": "bundle-2026.10.23.1.zip",
+  "notes": "App conectada al API publicado (Vercel + Supabase)",
+  "publishedAt": "2026-10-23T12:54:09.801Z",
+  "files": 36,
+  "size": 569680,
+  "sha256": "476adbe46429b8d887482ea28d7fb5dc9a81ecce79c60d0abb3c9c88ae649eea"
+}

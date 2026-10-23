@@ -43,6 +43,9 @@ const ORIGENES_DEV = [
   'capacitor://localhost',
   'http://localhost.localhost',
   'tauri://localhost',
+  // Tauri v2 en Windows sirve el bundle en `http://tauri.localhost`; en macOS/Linux es
+  // `tauri://localhost`. Sin esta entrada la app de escritorio no puede llamar al API.
+  'http://tauri.localhost',
   'https://tauri.localhost',
 ];
 

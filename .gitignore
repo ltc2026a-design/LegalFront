@@ -21,6 +21,7 @@ apps/consulta/android/capacitor-cordova-android-plugins/
 apps/consulta/android/app/src/main/assets/public/
 *.keystore
 *.jks
+keystore.properties
 
 # Desktop / Tauri
 apps/consulta/src-tauri/target/

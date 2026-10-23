@@ -1,5 +1,13 @@
 apply plugin: 'com.android.application'
 
+// El keystore vive FUERA del repo y sus datos en android/keystore.properties, que esta
+// en .gitignore: sin ese archivo `assembleRelease` simplemente sale sin firmar.
+def keystoreProps = new Properties()
+def keystorePropsFile = rootProject.file('keystore.properties')
+if (keystorePropsFile.exists()) {
+    keystoreProps.load(new FileInputStream(keystorePropsFile))
+}
+
 android {
     namespace = "mx.consulta.legal"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -8,7 +16,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +24,21 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            storeFile file(keystoreProps['storeFile'] ?: 'no-hay-keystore.aqui')
+            storePassword keystoreProps['storePassword'] ?: ''
+            keyAlias keystoreProps['keyAlias'] ?: ''
+            keyPassword keystoreProps['keyPassword'] ?: ''
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (keystoreProps['storeFile']) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
