@@ -5,6 +5,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { Capacitor } from '@capacitor/core';
 import App from './App';
 import { queryClient } from './lib/queryClient';
+import { confirmarArranque, revisarActualizaciones } from './lib/actualizaciones';
 import { initNativePush } from './lib/push-native';
 // Fase 4 — importar el store aplica el tema y la letra guardados ANTES del primer
 // paint (si no, la portada parpadea en claro al abrir con tema oscuro).
@@ -37,6 +38,12 @@ void sincronizarAlArrancar();
 // 'android' en /app/dispositivos (requiere google-services.json de Firebase: TODO).
 if (Capacitor.isNativePlatform()) {
   void initNativePush().catch(() => undefined);
+  // Live Updates — el aviso de arranque es lo que le dice al plugin que este bundle
+  // funciona; si la app volviera a caer al iniciar, el plugin revierte solo al anterior.
+  void confirmarArranque();
+  // Se deja unos segundos de margen para no competir con el primer paint ni con la
+  // cache de los libros. Si no hay red, simplemente no hay update en este arranque.
+  window.setTimeout(() => void revisarActualizaciones(), 5000);
 }
 
 createRoot(container).render(

@@ -22,6 +22,19 @@ const config: CapacitorConfig = {
     // Permite peticiones http (API LAN en desarrollo) desde el WebView.
     allowMixedContent: true,
   },
+  plugins: {
+    // Live Updates (@capgo/capacitor-updater, autohospedado). La comprobación NO usa
+    // la nube de Capgo: `revisarActualizaciones()` lee el manifiesto estatico que
+    // publicamos en el propio front (Vercel) y descarga el zip de alli.
+    // Con autoUpdate apagado el plugin nunca habla con un servidor externo.
+    CapacitorUpdater: {
+      autoUpdate: false,
+      // "" desactiva la telemetria de estadisticas del plugin.
+      statsUrl: '',
+      // Numero maximo de versiones de bundle que se guardan en el telefono.
+      maxVersion: 2,
+    },
+  },
 };
 
 export default config;

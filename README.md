@@ -66,3 +66,20 @@ cd android && ./gradlew assembleDebug
 
 Las actualizaciones de diseño llegan a los teléfonos instalados con **Live Updates**:
 el bundle se publica en la ruta estática `/live-updates/` de este mismo sitio.
+
+```bash
+# desde el monorepo, cuando ya exista la URL publica del front
+npm run live:publicar -- --api=https://<backend>.onrender.com/api --notas="que cambio"
+npm run preparar:repos -- front
+git add -A && git commit -m "live update <version>" && git push
+```
+
+El script compila, empaqueta el `dist` en un zip, escribe `public/live-updates/check.json`
+y deja los dos últimos bundles por si hay que revertir. Al terminar el despliegue de
+Vercel, cada APK revisa el manifiesto al arrancar y aplica el bundle nuevo en su siguiente
+arranque en frío — sin reinstalar y sin pasar por la tienda.
+
+**Una sola vez** hace falta volver a compilar e instalar el APK: la app tiene que llevar
+dentro el plugin `@capgo/capacitor-updater` y la variable `VITE_LIVE_UPDATE_URL` quemada
+(mira `apps/consulta/.env.production.example`). Un APK anterior a ese cambio no puede
+recibir live updates, no existe forma de inyectárselo después.
