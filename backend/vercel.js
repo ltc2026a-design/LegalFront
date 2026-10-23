@@ -1,52 +1,17 @@
-// Entrada que ve Vercel: el servicio `api` de `vercel.json` declara
-// "framework": "node" + "entrypoint": "vercel.js".
+// SONDA DE DESEMPLEO (temporal). Entrada declarada del servicio `api`
+// (`vercel.json`: root backend, entrypoint vercel.js). Responde JSON SIEMPRE, con
+// 200, y nunca importa nada en la carga del modulo: si este handler corre, el
+// cuerpo dice donde esta la funcion, que hay a su lado y por que no arranco la
+// app. Si Vercel sigue devolviendo su pagina `FUNCTION_INVOCATION_FAILED`, es que
+// este codigo no se ejecuto en absoluto.
 //
-// Por que `node` y no `express`: con el preset de Express el default export tiene
-// que ser la app real, y el wrapper del preset se ejecuta al cargar la funcion,
-// antes que cualquier try/catch propio. Eso produce exactamente lo unico que este
-// despliegue devolvio siete veces: 500 `FUNCTION_INVOCATION_FAILED` con la pagina
-// generica de Vercel por encima, sin JSON y sin stack. Con el runtime Node plano
-// el handler ES el default export, y aqui si se puede capturar todo.
-//
-// Por que el `import()` es perezoso: si el grafo de modulos falla — que falte una
-// variable de entorno, que no viaje el binario nativo de argon2, que `dist/` no
-// este en el bundle — el motivo se responde en JSON en vez de quedar oculto bajo
-// la pagina de Vercel. Se prueban dos especificadores porque el bundle del runtime
-// reescribe las rutas: el literal (que el trazador de dependencias si ve y por eso
-// copia `dist/` a la funcion) y el relativo a `import.meta.url` (que resuelve el
-// `dist/` real cuando el literal apunta al directorio equivocado).
-//
-// Por que el archivo se llama `vercel.js` y no `server.js`: el preset de Express
-// reserva `app.*`, `index.*` y `server.*` para detectar la aplicacion.
-const MARCA = 'api-vercel-v7';
-const CLAVES = [
-  'DATABASE_URL',
-  'JWT_SECRET',
-  'ENV_FILE',
-  'TRUST_PROXY',
-  'PG_POOL_MAX',
-  'VERSION_DEPLOY',
-];
+// `backend/vercel.js` (marca `sonda-backend-v8`) y el `vercel.js` de la raiz del
+// espejo (marca `sonda-raiz-v8`) son la misma sonda desde dos sitios: la marca
+// que llegue revela desde donde resuelve Vercel el `entrypoint`.
+import fs from 'node:fs';
 
-let app;
-let intentos = [];
-
-async function cargar() {
-  if (app) return;
-  intentos = [];
-  const opciones = [
-    () => import('./dist/vercel.js'),
-    () => import(new URL('./dist/vercel.js', import.meta.url)),
-  ];
-  for (const opcion of opciones) {
-    try {
-      ({ default: app } = await opcion());
-      return;
-    } catch (error) {
-      intentos.push({ tipo: error?.name, detalle: ocultar(error?.message) });
-    }
-  }
-}
+const MARCA = 'sonda-backend-v8';
+const CLAVES = ['DATABASE_URL', 'JWT_SECRET', 'ENV_FILE', 'TRUST_PROXY', 'PG_POOL_MAX', 'VERSION_DEPLOY'];
 
 function ocultar(texto) {
   return String(texto ?? '')
@@ -54,38 +19,54 @@ function ocultar(texto) {
     .slice(0, 400);
 }
 
-function responder(res, estado, cuerpo) {
-  // 200 a proposito en el fallo de arranque: con 5xx el borde de Vercel pone su
-  // pagina `FUNCTION_INVOCATION_FAILED` por encima del cuerpo y la causa deja de
-  // leerse desde fuera. Aqui lo que importa es que el JSON se vea.
-  res.statusCode = estado;
-  res.setHeader('content-type', 'application/json; charset=utf-8');
-  res.end(JSON.stringify(cuerpo, null, 2));
+function leerDirectorio(urlBase) {
+  try {
+    return fs.readdirSync(new URL('.', urlBase)).slice(0, 25);
+  } catch (error) {
+    return [`error: ${ocultar(error?.message)}`];
+  }
+}
+
+async function cargarApp(intentos) {
+  const opciones = [
+    ['literal', () => import('./dist/vercel.js')],
+    ['import.meta.url', () => import(new URL('./dist/vercel.js', import.meta.url))],
+    ['absoluto', () => import('/var/task/dist/vercel.js')],
+  ];
+  for (const [nombre, opcion] of opciones) {
+    try {
+      const modulo = await opcion();
+      if (modulo?.default) return modulo.default;
+      intentos.push({ nombre, detalle: 'el modulo no trae default export' });
+    } catch (error) {
+      intentos.push({ nombre, tipo: error?.name, detalle: ocultar(error?.message) });
+    }
+  }
+  return undefined;
 }
 
 export default async function handler(req, res) {
-  await cargar();
-  if (!app) {
-    responder(res, 200, {
-      ok: false,
-      marca: MARCA,
-      error: 'la app no se pudo cargar dentro de la funcion',
-      intentos,
-      presentes: Object.fromEntries(
-        CLAVES.map((clave) => [clave, Boolean(process.env[clave]?.trim())]),
-      ),
-    });
+  const intentos = [];
+  const app = await cargarApp(intentos);
+  res.setHeader('x-sonda-marca', MARCA);
+  if (app) {
+    // La app cargo: se ve en el header y el JSON de `/api/health` reporta la base.
+    app(req, res);
     return;
   }
-  try {
-    app(req, res);
-  } catch (error) {
-    responder(res, 500, {
-      ok: false,
-      marca: MARCA,
-      error: 'la app fallo al atender la peticion',
-      tipo: error?.name,
-      detalle: ocultar(error?.message ?? error),
-    });
-  }
+  const cuerpo = {
+    ok: false,
+    marca: MARCA,
+    node: process.version,
+    esteArchivo: ocultar(import.meta.url),
+    aqui: leerDirectorio(import.meta.url),
+    ruta: ocultar(req.url),
+    intentos,
+    presentes: Object.fromEntries(
+      CLAVES.map((clave) => [clave, Boolean(process.env[clave]?.trim())]),
+    ),
+  };
+  res.statusCode = 200;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(cuerpo, null, 2));
 }
