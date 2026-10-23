@@ -1,0 +1,32 @@
+# Dependencias y builds
+node_modules/
+dist/
+build/
+*.tsbuildinfo
+
+# Variables de entorno (los secretos nunca se suben)
+.env
+.env.local
+.env.*.local
+
+# Android / Capacitor (se genera con `npx cap sync`)
+apps/consulta/android/local.properties
+apps/consulta/android/.gradle/
+apps/consulta/android/build/
+apps/consulta/android/app/build/
+apps/consulta/android/capacitor-cordova-android-plugins/
+apps/consulta/android/app/src/main/assets/public/
+*.keystore
+*.jks
+
+# Desktop / Tauri
+apps/consulta/src-tauri/target/
+
+# Demo local generada desde el monorepo
+apps/consulta/demo/
+
+# Sistema operativo / editor / logs
+.DS_Store
+Thumbs.db
+*.log
+.vercel/

@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <!--
+      viewport-fit=cover: la app usa toda la pantalla del celular (el notch y la barra
+      de gestos los devuelve CSS con env(safe-area-inset-*)). NO se pone maximum-scale=1:
+      bloquear el zoom es una barrera de accesibilidad y el zoom de iOS al escribir se
+      evita con fuentes de 16px, no impidiendo ampliar.
+    -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#5c4033" media="(prefers-color-scheme: dark)" />
+    <meta
+      name="description"
+      content="Consulta constituciones, leyes y códigos de México y Quintana Roo, con asistente de dudas."
+    />
+    <!-- Al abrir la app desde el icono (PWA / WebView de Capacitor): sin barra del navegador. -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="format-detection" content="telephone=no" />
+    <title>Sistema de Consulta Legal</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

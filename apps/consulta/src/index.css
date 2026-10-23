@@ -1,0 +1,352 @@
+/* Zona 1 — Sistema de diseño: tokens de color, tipografia y animaciones.
+   Configuracion con la directiva @theme de Tailwind CSS v4 (sin tailwind.config.js). */
+
+@import 'tailwindcss';
+
+/* Fuentes variables autoalojadas (Asset Modules de Vite): serif para texto legal,
+   sans para interfaz y navegacion. */
+@import '@fontsource-variable/source-serif-4';
+@import '@fontsource-variable/inter';
+
+@theme {
+  /* ---- Paleta "blanco y cafe" (estilo juridico mexicano) ---- */
+  /* Fase 6 — el fondo ya no es blanco puro: la tinta calida descansa la vista al leer
+     rato largo. Los tokens nuevos (--color-linea, --color-tinta-*) sustituyen a las
+     opacidades sueltas para que el tema oscuro los voltee el solo. */
+  --color-background: #fbf8f5; /* fondo general */
+  --color-surface: #f4ece3; /* superficies / chips / pistas */
+  --color-primary: #8b5e3c; /* cafe principal */
+  --color-primary-dark: #5c4033; /* cafe oscuro (hover/activo) */
+  --color-acento: #d9a066; /* acento calido: apartado clave */
+  --color-texto: #2b211a; /* texto principal */
+  --color-texto-suave: #6d5c4e; /* texto secundario (no es gris) */
+  --color-texto-tenue: #9c8b7c; /* meta, ayudas, notas */
+  --color-linea: #e8ddd2; /* bordes y separadores */
+
+  /* ---- Estados de vigencia ---- */
+  --color-vigente: #2e7d32; /* exito: vigente */
+  --color-derogado: #b45309; /* aviso: derogado */
+  --color-revision: #b45309; /* aviso: en revision */
+
+  /* ---- Tonos cafe para skeletons (nunca gris generico) ---- */
+  --color-skeleton: #ede5de; /* base del placeholder */
+  --color-skeleton-alto: #dfcfbf; /* pico del pulso */
+
+  /* ---- Fase 4: superficie de tarjeta y tinta sobre el boton primario ---- */
+  /* Son tokens (no bg-white/text-white) para que el tema oscuro los voltee solos. */
+  --color-tarjeta: #ffffff; /* fondo de tarjetas, inputs y botones secundarios */
+  --color-sobre-primario: #ffffff; /* texto de lo que va sobre cafe solid */
+
+  /* ---- Tipografia ---- */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji';
+  --font-serif:
+    'Source Serif 4 Variable', 'Source Serif 4', ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* ---- Animaciones ---- */
+  --animate-entrada: entrada 250ms ease-out both;
+  --animate-pop-estrella: pop-estrella 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-pulse-cafe: pulso-cafe 1.6s ease-in-out infinite;
+  --animate-pop-burbuja: pop-burbuja 220ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+  --animate-aparecer: aparecer 220ms ease-out both;
+  --animate-brillo: brillo 1.5s ease-in-out infinite;
+  --animate-punto: punto 1.1s ease-in-out infinite;
+
+  @keyframes entrada {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop-estrella {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+    40% {
+      transform: scale(1.35) rotate(-8deg);
+    }
+    70% {
+      transform: scale(0.9) rotate(4deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes pulso-cafe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+
+  /* La burbuja del chat "nace" abajo y crece un poco de mas: se siente viva. */
+  @keyframes pop-burbuja {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Barrido de luz sobre el skeleton: el pulso solo se veia raro en pantallas chicas. */
+  @keyframes brillo {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  /*
+   * Cambio de pagina: SOLO opacidad. Un `translate` aqui dejaria un transform vivo en
+   * el envoltorio, y todo elemento `fixed` dentro de la pagina (el aviso de push, por
+   * ejemplo) pasaria a medirse contra el envoltorio en vez de contra la pantalla.
+   */
+  @keyframes aparecer {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* Los tres puntitos mientras la IA escribe. */
+  @keyframes punto {
+    0%,
+    60%,
+    100% {
+      opacity: 0.25;
+      transform: translateY(0);
+    }
+    30% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+}
+
+/* Fondo y color de texto base; la fuente sans (Inter) ya aplica via --font-sans. */
+@layer base {
+  html {
+    /* Sin esto, iOS agranda la letra sola en horizontal y rompe el diseño. */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-texto);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Fase 6 — el cambio de tema (claro/oscuro) se funde, no da saltos de color. */
+  html {
+    transition:
+      background-color 240ms ease,
+      color 240ms ease;
+  }
+
+  /* La seleccion en cafe: el azul del navegador desentona con la tinta calida. */
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-primary) 22%, transparent);
+    color: var(--color-texto);
+  }
+
+  /* El parpadeo gris al tocar no combina con el :active propio de cada control. */
+  a,
+  button,
+  summary {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/*
+ * Fase 4 — Tema oscuro.
+ *
+ * No se re-escriben clases por pantalla: se cambian los MISMOS tokens de @theme
+ * dentro de [data-tema='oscuro'], que es el atributo que pone lib/preferencias.ts.
+ * Como cada utilidad de Tailwind v4 compila a var(--color-...), toda la app se
+ * voltea de una sin tocar los componentes.
+ */
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  :root[data-tema='oscuro'] {
+    color-scheme: dark;
+    --color-background: #191310;
+    --color-surface: #241c17;
+    --color-tarjeta: #2a2118;
+    --color-sobre-primario: #1b1511;
+    --color-primary: #d9a066;
+    --color-primary-dark: #ecc196;
+    --color-acento: #c98a4e;
+    --color-texto: #f3ece4;
+    --color-texto-suave: #c6b6a6;
+    --color-texto-tenue: #97887a;
+    --color-linea: #3a2e24;
+    --color-vigente: #7fc08a;
+    --color-derogado: #e3a45f;
+    --color-revision: #e3a45f;
+    --color-skeleton: #33281f;
+    --color-skeleton-alto: #46382a;
+  }
+}
+
+/*
+ * Barra de scroll: delgada, redondeada y en tono café, para que combine con la app
+ * en vez del gris feo del navegador.
+ *   - Firefox: `scrollbar-color` (tubo / pista) + `scrollbar-width: thin`.
+ *   - Chrome/Edge/Safari: los pseudo-elementos `::-webkit-scrollbar*`.
+ *   - `--track-scroll` lo pisa el tema oscuro abajo, así la pista nunca queda blanca
+ *     sobre fondo café.
+ * Se usa un selector amplio (no solo html) para que también vista los paneles con
+ * `overflow` interno (el árbol de un código, el chat, la lista de resultados).
+ */
+@layer base {
+  * {
+    --track-scroll: var(--color-surface);
+    scrollbar-color: color-mix(in srgb, var(--color-primary) 50%, transparent) var(--track-scroll);
+    scrollbar-width: thin;
+  }
+
+  :root[data-tema='oscuro'] * {
+    --track-scroll: var(--color-background);
+  }
+
+  ::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--track-scroll);
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-primary) 40%, transparent);
+    border: 3px solid transparent; /* crea el "hollow" delgado al redondear */
+    border-radius: 9999px;
+    background-clip: content-box;
+    min-height: 3rem;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: color-mix(in srgb, var(--color-primary) 65%, transparent);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background-color: color-mix(in srgb, var(--color-primary) 80%, transparent);
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: var(--track-scroll);
+  }
+}
+
+/* ---- Utilidades de la app (Tailwind v4: @utility) ---- */
+
+/* Altura real en móvil: 100vh incluye la barra del navegador y corta el pie. */
+@utility h-pantalla {
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* Igual pero como minimo, para paginas que crecen con el contenido. */
+@utility min-h-pantalla {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Debajo de la barra de gestos del celular. */
+@utility pb-seguro {
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Simétrico, para cabeceras que pegan con el notch (viewport-fit=cover). */
+@utility pt-seguro {
+  padding-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+}
+
+/* Solo el notch, para envoltorios que ya traen su propio padding de arriba. */
+@utility pt-notch {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Area de toque minima (44px) sin cambiar el alto visual del boton. */
+@utility toque {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+}
+
+/*
+ * Fase 4 — Texto legal con la letra de la persona.
+ * `--factor-letra` lo escribe lib/preferencias.ts sobre <html> (85–140 %). Se escala
+ * SOLO el texto de los libros: la interfaz (barra inferior, botones, targets de 44 px)
+ * queda intacta y por eso el layout no se rompe en pantallas chicas.
+ */
+@utility texto-legal {
+  font-size: calc(1rem * var(--factor-letra, 1));
+  line-height: 1.8;
+  letter-spacing: 0.002em;
+}
+
+/* Feedback de presionado en tarjetas y botones grandes. Incluye color de fondo para
+   que quien use `aprieta` no tenga que declarar otra transicion encima. */
+@utility aprieta {
+  transition:
+    transform 120ms ease-out,
+    box-shadow 120ms ease-out,
+    background-color 200ms ease,
+    color 200ms ease;
+  &:active {
+    transform: scale(0.985);
+  }
+}
+
+/* Justo arriba de la barra inferior de móvil (BarraInferior mide ~64 px). */
+@utility sobre-barra {
+  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+/* Fila de chips que se desliza con el dedo y se ancla al inicio de cada chip. */@utility fila-chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+  & > * {
+    scroll-snap-align: start;
+  }
+}
+
+/* Accesibilidad: sin animaciones ni transiciones si el usuario lo pide. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

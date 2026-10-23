@@ -1,0 +1,95 @@
+/* Zona 1 — Sistema de diseño: tokens de color, tipografia y animaciones.
+   Configuracion con la directiva @theme de Tailwind CSS v4 (sin tailwind.config.js). */
+
+@import 'tailwindcss';
+
+/* Fuentes variables autoalojadas (Asset Modules de Vite): serif para texto legal,
+   sans para interfaz y navegacion. */
+@import '@fontsource-variable/source-serif-4';
+@import '@fontsource-variable/inter';
+
+@theme {
+  /* ---- Paleta "blanco y cafe" (estilo juridico mexicano) ---- */
+  --color-background: #ffffff; /* fondo general */
+  --color-surface: #faf7f4; /* superficies / tarjetas */
+  --color-primary: #8b5e3c; /* cafe principal */
+  --color-primary-dark: #5c4033; /* cafe oscuro (hover/activo) */
+  --color-acento: #d9a066; /* acento calido: apartado clave */
+  --color-texto: #2b211a; /* texto principal */
+
+  /* ---- Estados de vigencia ---- */
+  --color-vigente: #2e7d32; /* exito: vigente */
+  --color-derogado: #b45309; /* aviso: derogado */
+  --color-revision: #b45309; /* aviso: en revision */
+
+  /* ---- Tonos cafe para skeletons (nunca gris generico) ---- */
+  --color-skeleton: #ede5de; /* base del placeholder */
+  --color-skeleton-alto: #dfcfbf; /* pico del pulso */
+
+  /* ---- Tipografia ---- */
+  --font-sans: 'Inter Variable', 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji';
+  --font-serif:
+    'Source Serif 4 Variable', 'Source Serif 4', ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* ---- Animaciones ---- */
+  --animate-entrada: entrada 250ms ease-out both;
+  --animate-pop-estrella: pop-estrella 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-pulse-cafe: pulso-cafe 1.6s ease-in-out infinite;
+
+  @keyframes entrada {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes pop-estrella {
+    0% {
+      transform: scale(1) rotate(0deg);
+    }
+    40% {
+      transform: scale(1.35) rotate(-8deg);
+    }
+    70% {
+      transform: scale(0.9) rotate(4deg);
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  @keyframes pulso-cafe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.45;
+    }
+  }
+}
+
+/* Fondo y color de texto base; la fuente sans (Inter) ya aplica via --font-sans. */
+@layer base {
+  body {
+    background-color: var(--color-background);
+    color: var(--color-texto);
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+/* Accesibilidad: sin animaciones ni transiciones si el usuario lo pide. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

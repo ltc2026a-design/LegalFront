@@ -1,0 +1,23 @@
+{
+  "name": "legal-front",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sistema de Consulta Legal — frentes publicados en Vercel (consulta + panel)",
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @legal/consulta",
+    "dev:consulta": "npm run dev --workspace @legal/consulta",
+    "dev:admin": "npm run dev --workspace @legal/admin",
+    "build": "npm run build --workspace @legal/consulta",
+    "build:consulta": "npm run build --workspace @legal/consulta",
+    "build:admin": "npm run build --workspace @legal/admin",
+    "preview": "npm run preview --workspace @legal/consulta",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  }
+}
