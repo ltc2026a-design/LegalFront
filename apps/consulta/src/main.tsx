@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
+import PantallaCarga from './components/PantallaCarga';
 import { queryClient } from './lib/queryClient';
 import { vigilarVersionNativa, vigilarVersionWeb } from './lib/actualizaciones';
 // Fase 4 — importar el store aplica el tema y la letra guardados ANTES del primer
@@ -54,5 +55,10 @@ createRoot(container).render(
         <App />
       </BrowserRouter>
     </QueryClientProvider>
+    {/*
+      Fuera del enrutador a propósito: la pantalla de carga tiene que salir en cada
+      apertura pase lo que pase con la ruta o la sesión (incluido el redirect al login).
+    */}
+    <PantallaCarga />
   </StrictMode>,
 );

@@ -1,9 +1,9 @@
 {
-  "version": "2026.10.23.4",
-  "url": "bundle-2026.10.23.4.zip",
-  "notes": "Aviso de actualizacion dentro de la app",
-  "publishedAt": "2026-10-23T14:48:12.175Z",
+  "version": "2026.10.23.5",
+  "url": "bundle-2026.10.23.5.zip",
+  "notes": "Pantalla de carga al abrir + aviso de actualizacion",
+  "publishedAt": "2026-10-23T15:18:21.575Z",
   "files": 43,
-  "size": 1118146,
-  "sha256": "050b4df95c172c1ac4f2bebfa8b9b102128122b45d8f0017e1d0cfbc81410d2a"
+  "size": 1118760,
+  "sha256": "8364e57df0791471870adaec7620b9c7b6148e9ad93023d954d7b25160b85781"
 }
