@@ -54,10 +54,10 @@
     },
     "api": {
       "root": "backend",
-      "framework": "node",
+      "framework": "express",
       "installCommand": "npm install",
       "buildCommand": "npx prisma generate && npm run build",
-      "entrypoint": "vercel.js"
+      "entrypoint": "index.js"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
