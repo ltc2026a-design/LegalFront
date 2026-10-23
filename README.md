@@ -66,10 +66,13 @@ rutas públicas y las variables compartidas.
 
 ### Cómo está armado el servicio `api`
 
-- `framework: express` + `entrypoint: dist/vercel.js`: Vercel convierte la app en una
-  única **Vercel Function** con Fluid compute. El archivo es `backend/src/vercel.ts`,
-  que hace `export default crearApp()` — no escucha un puerto, porque en una función no
-  hay proceso persistente. `src/server.ts` (el `listen` de siempre) sigue para el
+- `framework: express` + `entrypoint: vercel.js`: Vercel convierte la app en una
+  única **Vercel Function** con Fluid compute. `backend/vercel.js` es un reenvío que sí
+  viaja en el repo y apunta a `dist/vercel.js`, que es `backend/src/vercel.ts` compilado
+  (`export default crearApp()`, sin `listen` porque en una función no hay proceso
+  persistente). **El `entrypoint` tiene que existir en el código fuente**: Vercel lo
+  valida *antes* de correr la `buildCommand`, por eso no puede ser `dist/…`
+  (`ENTRYPOINT_NOT_FOUND`). `src/server.ts` (el `listen` de siempre) se queda para el
   monorepo, Render o cualquier contenedor.
 - `buildCommand: npx prisma generate && npm run build`: el cliente Prisma generado NO
   viaja en el espejo (`src/generated` está excluido e ignorado), por eso hay que

@@ -57,7 +57,7 @@
       "framework": "express",
       "installCommand": "npm install",
       "buildCommand": "npx prisma generate && npm run build",
-      "entrypoint": "dist/vercel.js"
+      "entrypoint": "vercel.js"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
