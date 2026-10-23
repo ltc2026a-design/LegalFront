@@ -31,7 +31,6 @@ async function cargarApp(intentos) {
   const opciones = [
     ['literal', () => import('./dist/vercel.js')],
     ['import.meta.url', () => import(new URL('./dist/vercel.js', import.meta.url))],
-    ['absoluto', () => import('/var/task/dist/vercel.js')],
   ];
   for (const [nombre, opcion] of opciones) {
     try {
