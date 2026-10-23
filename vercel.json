@@ -56,8 +56,7 @@
       "root": "backend",
       "framework": "express",
       "installCommand": "npm install",
-      "buildCommand": "npx prisma generate && npm run build",
-      "entrypoint": "vercel.js"
+      "buildCommand": "npx prisma generate && npm run build"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
