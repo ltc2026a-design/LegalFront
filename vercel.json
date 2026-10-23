@@ -54,10 +54,9 @@
     },
     "api": {
       "root": "backend",
-      "framework": "express",
+      "framework": null,
       "installCommand": "npm install",
-      "buildCommand": "npx prisma generate && npm run build",
-      "entrypoint": "index.cjs"
+      "buildCommand": "npx prisma generate && npm run build"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
