@@ -8,10 +8,7 @@
       bloquear el zoom es una barrera de accesibilidad y el zoom de iOS al escribir se
       evita con fuentes de 16px, no impidiendo ampliar.
     -->
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="light" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#5c4033" media="(prefers-color-scheme: dark)" />
@@ -24,6 +21,15 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="format-detection" content="telephone=no" />
+    <!--
+      Icono de la pestaña del navegador, de la pantalla de inicio y del instalador de PWA.
+      `manifest.webmanifest` es lo que hace que "Instalar app" use este logo y no uno
+      genérico; `/icons/*` y `/favicon.ico` salen de `public/`, generados del logo real.
+    -->
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>Sistema de Consulta Legal</title>
   </head>
   <body>
