@@ -1,0 +1,361 @@
+// Modelo de datos del Sistema de Consulta Legal (Zona 2).
+// Naming: modelos PascalCase, columnas en la base en snake_case via @map, nombres
+// y relaciones documentados en espanol.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// En Prisma 7 la URL ya NO va aqui: se define con env("DATABASE_URL")
+// (desde backend/.env via dotenv) en backend/prisma.config.ts.
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------- Enumeraciones ----------
+
+enum RolAdmin {
+  administrador
+  editor_legal
+
+  @@map("rol_admin")
+}
+
+enum Jurisdiccion {
+  federal
+  estatal_quintana_roo
+  municipal
+
+  @@map("jurisdiccion")
+}
+
+enum MetodoIngesta {
+  scraper
+  api
+  manual
+
+  @@map("metodo_ingesta")
+}
+
+enum EstadoFuente {
+  activa
+  en_pausa
+  con_error
+
+  @@map("estado_fuente")
+}
+
+enum TipoCodigo {
+  constitucion
+  codigo_penal
+  codigo_civil
+  codigo_fiscal
+  codigo_procedimientos
+  ley_organica
+  otro
+
+  @@map("tipo_codigo")
+}
+
+enum TipoSeccion {
+  libro
+  titulo
+  capitulo
+  seccion
+
+  @@map("tipo_seccion")
+}
+
+enum EstadoCambio {
+  pendiente_revision
+  aprobado
+  rechazado
+
+  @@map("estado_cambio")
+}
+
+enum OrigenCambio {
+  sincronizacion_automatica
+  edicion_manual
+
+  @@map("origen_cambio")
+}
+
+/// Naturaleza del cambio detectado por un conector de sincronizacion.
+/// - nuevo:      articulo que no existia en la base (HistorialCambioArticulo con
+///               articuloId NULL y codigoId+numero rellenados).
+/// - modificado: articulo existente cuyo texto oficial cambio.
+/// - derogado:   articulo vigente en la base que ya NO aparece en la fuente.
+enum TipoCambio {
+  nuevo
+  modificado
+  derogado
+
+  @@map("tipo_cambio")
+}
+
+enum EstadoTarea {
+  exitosa
+  fallida
+  con_cambios_pendientes
+
+  @@map("estado_tarea")
+}
+
+enum Plataforma {
+  web
+  android
+  ios
+  desktop
+
+  @@map("plataforma")
+}
+
+// ---------- Modelos ----------
+
+/// Administradores del panel (login solo via credenciales creadas por el dueno
+/// por CLI; no hay autorregistro).
+model UsuarioAdmin {
+  id           String     @id @default(cuid())
+  nombre       String
+  email        String     @unique
+  passwordHash String     @map("password_hash")
+  rol          RolAdmin   @default(editor_legal)
+  creadoEn     DateTime   @default(now()) @map("creado_en")
+
+  cambiosAprobados HistorialCambioArticulo[]
+
+  @@map("usuario_admin")
+}
+
+/// Fuente oficial de donde se sincroniza un documento (DOF, Congreso local, etc.).
+model FuenteOficial {
+  id                        String        @id @default(cuid())
+  nombre                    String
+  jurisdiccion              Jurisdiccion
+  urlOrigen                 String        @map("url_origen")
+  metodoIngesta             MetodoIngesta @map("metodo_ingesta")
+  frecuenciaSincronizacion  String        @map("frecuencia_sincronizacion") // "diaria", "semanal"...
+  ultimaSincronizacionEn    DateTime?     @map("ultima_sincronizacion_en")
+  estado                    EstadoFuente  @default(activa)
+  /// Estable identificador de la clase de conector a usar para esta fuente
+  /// (ver backend/src/conectores/registro.ts): "diputados_federal", "fixture",
+  /// "manual_import". NULL = fuente sin conector automatico.
+  conectorKey               String?       @map("conector_key")
+
+  codigos Codigo[]
+  tareasSincronizacion TareaSincronizacion[]
+
+  @@map("fuente_oficial")
+}
+
+/// Codigo, ley o constitucion versionada.
+model Codigo {
+  id                 String       @id @default(cuid())
+  fuenteOficialId    String?      @map("fuente_oficial_id")
+  nombre             String
+  tipo               TipoCodigo
+  jurisdiccion       Jurisdiccion
+  descripcion        String
+  versionVigente     String       @map("version_vigente")
+  fechaUltimaReforma DateTime?    @map("fecha_ultima_reforma")
+  slug               String       @unique
+  creadoEn           DateTime     @default(now()) @map("creado_en")
+  actualizadoEn      DateTime     @updatedAt @map("actualizado_en")
+
+  fuenteOficial FuenteOficial? @relation(fields: [fuenteOficialId], references: [id], onDelete: SetNull)
+  secciones     Seccion[]
+  articulos     Articulo[]
+  /// Cambios de sincronizacion/edicion asociados al codigo (para los de tipo
+  /// "nuevo", que aun no tienen articulo y se anclan aqui).
+  historialCambios HistorialCambioArticulo[]
+
+  @@map("codigo")
+}
+
+/// Jerarquia normativa generica (libro > titulo > capitulo > seccion), de
+/// cualquier profundidad gracias a la auto-relacion seccion_padre_id.
+model Seccion {
+  id            String     @id @default(cuid())
+  codigoId      String     @map("codigo_id")
+  seccionPadreId String?   @map("seccion_padre_id")
+  tipo          TipoSeccion
+  numero        String
+  nombre        String
+  orden         Int
+
+  codigo       Codigo      @relation(fields: [codigoId], references: [id], onDelete: Cascade)
+  padre        Seccion?    @relation("SeccionPadreHija", fields: [seccionPadreId], references: [id], onDelete: Cascade)
+  hijas        Seccion[]   @relation("SeccionPadreHija")
+  articulos    Articulo[]
+
+  @@index([codigoId])
+  @@index([seccionPadreId])
+  @@map("seccion")
+}
+
+/// Articulo de un codigo.
+/// NOTA: en la base existe ademas la columna generada `texto_ts tsvector`
+/// (indice GIN para busqueda de texto completo en espanol). Prisma no puede
+/// modelar columnas generadas, por eso NO aparece en este modelo; se creo y
+/// se documenta en la migracion inicial (excepcion deliberada y documentada).
+model Articulo {
+  id                 String    @id @default(cuid())
+  codigoId           String    @map("codigo_id")
+  seccionId          String?   @map("seccion_id")
+  numero             String // "1", "3 A BIS"...
+  texto              String
+  esApartadoClave    Boolean   @default(false) @map("es_apartado_clave")
+  vigente            Boolean   @default(true)
+  fechaUltimaReforma DateTime? @map("fecha_ultima_reforma")
+  orden              Int
+  creadoEn           DateTime  @default(now()) @map("creado_en")
+  actualizadoEn      DateTime  @updatedAt @map("actualizado_en")
+
+  codigo         Codigo                    @relation(fields: [codigoId], references: [id], onDelete: Cascade)
+  seccion        Seccion?                  @relation(fields: [seccionId], references: [id], onDelete: SetNull)
+  historialCambios HistorialCambioArticulo[]
+  favoritos        Favorito[]
+  notificaciones   NotificacionCambio[]
+
+  @@index([codigoId])
+  @@index([seccionId])
+  @@map("articulo")
+}
+
+/// Cambios detectados por sincronizacion o edicion, pendientes de revision
+/// editorial.
+/// Zona 6: `articuloId` ahora es OPCIONAL. El historial literal de la Zona 2
+/// exigia un articulo ya existente, por lo que NO podia representar un articulo
+/// NUEVO detectado por sincronizacion. Para un `tipoCambio = nuevo` se guardan
+/// `codigoId` + `numero` (el articulo se crea al aprobarse en la Zona 7); para
+/// `modificado`/`derogado` se conserva el `articuloId` del articulo afectado.
+model HistorialCambioArticulo {
+  id              String       @id @default(cuid())
+  articuloId      String?      @map("articulo_id")
+  codigoId        String?      @map("codigo_id")
+  numero          String?
+  tipoCambio      TipoCambio   @default(modificado) @map("tipo_cambio")
+  textoAnterior   String?      @map("texto_anterior")
+  textoNuevo      String       @map("texto_nuevo")
+  fechaDeteccion  DateTime     @default(now()) @map("fecha_deteccion")
+  fechaAprobacion DateTime?    @map("fecha_aprobacion")
+  estado          EstadoCambio @default(pendiente_revision)
+  origen          OrigenCambio
+  aprobadoPorId   String?      @map("aprobado_por_id")
+
+  articulo    Articulo?     @relation(fields: [articuloId], references: [id], onDelete: Cascade)
+  codigo      Codigo?       @relation(fields: [codigoId], references: [id], onDelete: Cascade)
+  aprobadoPor UsuarioAdmin? @relation(fields: [aprobadoPorId], references: [id], onDelete: Restrict)
+
+  @@index([articuloId])
+  @@index([codigoId])
+  @@index([aprobadoPorId])
+  @@map("historial_cambio_articulo")
+}
+
+/// Bitacora de ejecuciones de los conectores de sincronizacion.
+model TareaSincronizacion {
+  id                String      @id @default(cuid())
+  fuenteOficialId   String      @map("fuente_oficial_id")
+  iniciadoEn        DateTime    @default(now()) @map("iniciado_en")
+  finalizadoEn      DateTime?   @map("finalizado_en")
+  estado            EstadoTarea
+  cambiosDetectados Int         @default(0) @map("cambios_detectados")
+  log               String      @db.Text
+
+  fuenteOficial FuenteOficial @relation(fields: [fuenteOficialId], references: [id], onDelete: Cascade)
+
+  @@index([fuenteOficialId])
+  @@map("tarea_sincronizacion")
+}
+
+/// Usuario de la app de consulta. Sin cuenta es anonimo (solo device_id); con cuenta
+/// la creó el dueño por CLI (`npm run usuario:create`) — no existe autorregistro.
+model UsuarioApp {
+  id       String   @id @default(cuid())
+  deviceId String   @unique @map("device_id")
+  nombre   String?
+  /// Etiqueta opcional de soporte (la pone el propio dispositivo). No es credencial
+  /// y puede repetirse entre dispositivos, por eso vive separada de `loginEmail`.
+  email    String?
+  /// Correo con el que inicia sesion. Unico: es la identificacion de la cuenta.
+  loginEmail      String?   @unique @map("login_email")
+  passwordHash    String?   @map("password_hash")
+  ultimoAccesoEn  DateTime? @map("ultimo_acceso_en")
+  creadoEn        DateTime  @default(now()) @map("creado_en")
+
+  favoritos      Favorito[]
+  dispositivosPush DispositivoPush[]
+  preferencias     PreferenciasApp?
+
+  @@map("usuario_app")
+}
+
+/// Ajustes de lectura/aviso de una persona. Existe tambien para anonimos (colgados de
+/// su fila de UsuarioApp por device_id), asi el navegador y el telefono los comparten.
+model PreferenciasApp {
+  id             String   @id @default(cuid())
+  usuarioAppId   String   @unique @map("usuario_app_id")
+  /// 'claro' | 'sepia' | 'oscuro'
+  tema           String   @default("claro")
+  /// Porcentaje sobre el tamano base (85-130).
+  tamanoLetra    Int      @default(100) @map("tamano_letra")
+  /// Slug del libro al que se quiere saltar directo desde el perfil.
+  codigoFavorito String?  @map("codigo_favorito")
+  notificaciones Boolean  @default(true)
+  /// Franja de silencio "HH:MM" (solo avisos fuera de esa ventana).
+  silencioDesde  String?  @map("silencio_desde")
+  silencioHasta  String?  @map("silencio_hasta")
+  /// false = no guardar el historial de busquedas/preguntas del chat.
+  guardarHistorial Boolean @default(true) @map("guardar_historial")
+  actualizadoEn  DateTime @updatedAt @map("actualizado_en")
+
+  usuarioApp UsuarioApp @relation(fields: [usuarioAppId], references: [id], onDelete: Cascade)
+
+  @@map("preferencias_app")
+}
+
+/// Articulo guardado por un usuario de la app.
+model Favorito {
+  id            String   @id @default(cuid())
+  usuarioAppId  String   @map("usuario_app_id")
+  articuloId    String   @map("articulo_id")
+  creadoEn      DateTime @default(now()) @map("creado_en")
+
+  usuarioApp UsuarioApp @relation(fields: [usuarioAppId], references: [id], onDelete: Cascade)
+  articulo   Articulo   @relation(fields: [articuloId], references: [id], onDelete: Cascade)
+
+  @@unique([usuarioAppId, articuloId])
+  @@map("favorito")
+}
+
+/// Notificacion de reforma o cambio relevante.
+model NotificacionCambio {
+  id             String   @id @default(cuid())
+  articuloId     String?  @map("articulo_id")
+  titulo         String
+  mensaje        String
+  enviadaEn      DateTime? @map("enviada_en")
+  enviadaATodos  Boolean  @default(false) @map("enviada_a_todos")
+
+  articulo Articulo? @relation(fields: [articuloId], references: [id], onDelete: SetNull)
+
+  @@index([articuloId])
+  @@map("notificacion_cambio")
+}
+
+/// Token de push registrado por cada dispositivo del usuario.
+model DispositivoPush {
+  id           String     @id @default(cuid())
+  usuarioAppId String?    @map("usuario_app_id")
+  tokenPush    String     @map("token_push")
+  plataforma   Plataforma
+  creadoEn     DateTime   @default(now()) @map("creado_en")
+
+  usuarioApp UsuarioApp? @relation(fields: [usuarioAppId], references: [id], onDelete: SetNull)
+
+  @@index([usuarioAppId])
+  @@map("dispositivo_push")
+}

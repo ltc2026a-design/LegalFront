@@ -1,0 +1,9 @@
+{
+  // Config de BUILD/EMIT: NO compila la suite de pruebas (src/__tests__) ni el
+  // harness, que solo corren con `npm test` via Vitest/tsx.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false
+  },
+  "exclude": ["src/generated", "src/__tests__"]
+}

@@ -1,0 +1,38 @@
+{
+  "codigo": {
+    "slug": "reglamento-municipal-demo",
+    "nombre": "Reglamento Municipal de Demostración",
+    "tipo": "otro",
+    "jurisdiccion": "municipal",
+    "versionVigente": "Texto de ejemplo para importar en lote",
+    "fechaUltimaReforma": "2025-01-15"
+  },
+  "secciones": [
+    {
+      "tipo": "titulo",
+      "numero": "I",
+      "nombre": "TÍTULO I: DISPOSICIONES GENERALES",
+      "children": [
+        {
+          "tipo": "capitulo",
+          "numero": "1",
+          "nombre": "CAPÍTULO 1: OBJETO Y ÁMBITO",
+          "children": []
+        }
+      ]
+    }
+  ],
+  "articulos": [
+    {
+      "numero": "1",
+      "texto": "El presente reglamento es de observancia general en el municipio y regula las materias de su competencia.",
+      "rutaSecciones": ["titulo:i", "capitulo:1"],
+      "esApartadoClave": true
+    },
+    {
+      "numero": "2",
+      "texto": "Las disposiciones de este reglamento se interpretarán a favor de la mayor participación ciudadana.",
+      "rutaSecciones": ["titulo:i", "capitulo:1"]
+    }
+  ]
+}

@@ -51,10 +51,18 @@
           "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
         }
       ]
+    },
+    "api": {
+      "root": "backend",
+      "framework": "express",
+      "installCommand": "npm install",
+      "buildCommand": "npx prisma generate && npm run build",
+      "entrypoint": "dist/vercel.js"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
   "rewrites": [
+    { "source": "/api/(.*)", "destination": { "service": "api" } },
     { "source": "/panel/(.*)", "destination": { "service": "panel" } },
     { "source": "/(.*)", "destination": { "service": "consulta" } }
   ]

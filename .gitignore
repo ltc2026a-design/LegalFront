@@ -4,6 +4,9 @@ dist/
 build/
 *.tsbuildinfo
 
+# Cliente Prisma: lo genera `npx prisma generate` en el propio despliegue
+backend/src/generated/
+
 # Variables de entorno (los secretos nunca se suben)
 .env
 .env.local
