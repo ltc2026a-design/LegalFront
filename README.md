@@ -66,18 +66,23 @@ rutas públicas y las variables compartidas.
 
 ### Cómo está armado el servicio `api`
 
-- `framework: express` + `entrypoint: index.cjs`: Vercel convierte la app en una
-  única **Vercel Function** con Fluid compute. La entrada es **CommonJS** aunque
-  `backend/package.json` sea `type: module`: el runtime de la función carga el archivo
-  con `require()` y requerir un módulo ESM mata la función antes de la primera petición,
-  que es exactamente la página genérica 500 `FUNCTION_INVOCATION_FAILED` que devolvió el
-  servicio durante once despliegues. `backend/index.cjs` monta su propia app de Express y
-  dentro carga `dist/vercel.js` (`backend/src/vercel.ts` compilado, `export default
-  crearApp()` sin `listen`) con un `import()` dinámico: si el grafo falla, el motivo se
-  lee en el JSON de la respuesta en lugar de quedar bajo la página de Vercel. **El
-  `entrypoint` tiene que existir en el código fuente** — Vercel lo valida *antes* de
-  correr la `buildCommand`, por eso no puede ser `dist/…` (`ENTRYPOINT_NOT_FOUND`) — y
-  **hay que declararlo**: sin `entrypoint` el build del servicio falla. `src/server.ts`
+- **`root: "."` + `framework: express` + `entrypoint: "backend/index.cjs"`**. El `root` del
+  servicio NO puede ser `backend`: Vercel entonces busca la función con la ruta *sin
+  recortar* el prefijo (`backend/index.cjs` dentro de un `/var/task` que ya es `backend/`)
+  y cada request devuelve 500 `FUNCTION_INVOCATION_FAILED` en medio segundo, pase lo que
+  pase en el código — ni JSON, ni stack, ni forma de leerlo desde fuera. Con el `root` en
+  la raíz del repo y el `entrypoint` prefijado, la misma entrada respondió a la primera.
+- `backend/index.cjs` monta su propia app de Express y dentro carga `dist/vercel.js`
+  (`backend/src/vercel.ts` compilado, `export default crearApp()` sin `listen`) con un
+  `import()` dinámico: si el grafo falla, el motivo se lee en el JSON de la respuesta en
+  lugar de quedar bajo la página de Vercel. Es **CommonJS** (`.cjs`) para que el `require()`
+  del runtime no muera en `ERR_REQUIRE_ESM` aunque el paquete sea `type: module`; el
+  `main` de `backend/package.json` apunta aquí por el mismo motivo. **El `entrypoint` tiene
+  que existir en el código fuente** — Vercel lo valida *antes* de correr la `buildCommand`,
+  por eso no puede ser `dist/…` (`ENTRYPOINT_NOT_FOUND`) — y **hay que declararlo**: sin
+  `entrypoint` el build del servicio falla. Tampoco se puede apagar el preset
+  (`framework: null` con la carpeta clásica `backend/api/[...all].js` rompe la build):
+  en modo services el preset es obligatorio. `src/server.ts`
   (el `listen` de siempre) se queda para el monorepo y para cualquier contenedor.
 - `buildCommand: npx prisma generate && npm run build`: el cliente Prisma generado NO
   viaja en el espejo (`src/generated` está excluido e ignorado), por eso hay que

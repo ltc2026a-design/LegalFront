@@ -1,35 +1,35 @@
-// Entrada del servicio `api` en Vercel (`vercel.json`: root backend, framework
-// express, entrypoint index.cjs).
+// Entrada del servicio `api` en Vercel. En `vercel.json` el servicio se declara con
+// `root: "."` (la raiz del repo) y `entrypoint: "backend/index.cjs"`.
 //
-// Por que `.cjs` y no `.js`: `backend/package.json` tiene `"type": "module"`, asi
-// que un `.js` es ESM. El runtime Node de Vercel carga la funcion con `require()`
-// del archivo trazado, y requerir un modulo ESM revienta con `ERR_REQUIRE_ESM` ANTES
-// de la primera peticion: la funcion existe, el build pasa, y cada request devuelve
-// la misma pagina generica 500 `FUNCTION_INVOCATION_FAILED` sin JSON posible. Eso es
-// exactamente lo que este despliegue llevo once intentos repitiendo, sin importar que
-// el archivo exportara (handler plano, app de Express, re-export de `dist/`), porque
-// los once eran ESM. Con `.cjs` el modulo es CommonJS aunque el paquete sea ESM, y el
-// `import()` dinamico sigue disponible dentro de CJS.
+// Ese `root` es LA razon de que este archivo exista. Con `root: "backend"` Vercel busca la
+// funcion con la ruta sin recortar el prefijo del servicio (`backend/index.cjs` dentro de
+// un `/var/task` que ya ES `backend/`), asi que la invocacion moria en ~0.5 s con la
+// pagina generica 500 `FUNCTION_INVOCATION_FAILED` pase lo que hubiera dentro del archivo:
+// sin JSON, sin stack y sin forma de leerlo desde fuera. Cuesta 14 despliegues y once
+// formas de entrada dar con ello (handler plano, re-export estatico, app de Express, ESM,
+// CJS, `framework: node`, sin `entrypoint`, funcion clasica en `api/`, `main` reorientado).
 //
-// Por que envuelve en una app propia en vez de re-exportar la app compilada: un
-// re-export estatico hace que cualquier fallo del grafo — una variable de entorno que
-// falta, el binario nativo de argon2, `dist/` no incluido en el bundle — reviente al
-// cargar el modulo, otra vez sin forma de leer el motivo desde fuera (no hay acceso
-// al dashboard ni a los Runtime Logs). Exportando una app propia, el fallo se atiende
-// como peticion normal y se responde en JSON: nombre de la variable o del modulo,
+// Por que `.cjs`: `backend/package.json` tiene `"type": "module"`, o sea un `.js` es ESM,
+// y el runtime de la funcion lo cargaria con `require()`. Con `.cjs` es CommonJS sin tocar
+// el resto del paquete, y el `import()` dinamico sigue funcionando dentro de CJS.
+//
+// Por que envuelve en una app propia en vez de re-exportar la app compilada: un re-export
+// estatico hace que cualquier fallo del grafo — una variable de entorno que falta, el
+// binario nativo de argon2, `dist/` no incluido en el bundle — reviente al cargar el
+// modulo, otra vez sin forma de leer el motivo. Exportando una app propia, el fallo se
+// atiende como peticion normal y se responde en JSON: nombre de la variable o del modulo,
 // nunca secretos.
 //
-// El `import()` con literal es el que ve el trazador de dependencias de Vercel, y por
-// eso `dist/` viaja dentro de la funcion.
+// El `import()` con literal es el que ve el trazador de dependencias de Vercel, y por eso
+// `dist/` viaja dentro de la funcion.
 //
-// Y `main` de `backend/package.json` apunta aqui: antes apuntaba a `dist/server.js`,
-// que hace `listen` y no exporta handler. Si cualquier parte del build resuelve la
-// entrada por el `main` del paquete, acababa ahi — y una funcion cuyo modulo principal
-// no exporta nada devuelve el mismo 500 opaco pase lo que pase en el resto del repo.
+// Y `main` de `backend/package.json` apunta aqui: antes apuntaba a `dist/server.js`, que
+// hace `listen` y no exporta handler, y cualquier resolucion del paquete por su `main`
+// acababa en un servidor que no atiende peticiones.
 const fs = require('node:fs');
 const express = require('express');
 
-const MARCA = 'api-v10-cjs';
+const MARCA = 'api-v12-raiz';
 const CLAVES = [
   'DATABASE_URL',
   'JWT_SECRET',
