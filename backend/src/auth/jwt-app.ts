@@ -12,12 +12,19 @@ import 'dotenv/config';
 import jwt from 'jsonwebtoken';
 import type { JwtPayload, SignOptions } from 'jsonwebtoken';
 
-const SECRET = process.env.JWT_APP_SECRET || process.env.JWT_SECRET;
-if (!SECRET) {
-  throw new Error(
-    'Falta JWT_SECRET (o JWT_APP_SECRET) en el entorno (backend/.env). Sin secreto no se pueden firmar sesiones de la app.',
-  );
+// El secreto se lee AL FIRMAR/VERIFICAR, no al importar el modulo: en una funcion
+// de Vercel la app Express se construye antes de la primera peticion y un throw
+// ahi deja el despliegue como `FUNCTION_INVOCATION_FAILED` sin ninguna pista.
+function requireSecreto(): string {
+  const secreto = process.env.JWT_APP_SECRET || process.env.JWT_SECRET;
+  if (!secreto) {
+    throw new Error(
+      'Falta JWT_SECRET (o JWT_APP_SECRET) en el entorno (backend/.env). Sin secreto no se pueden firmar sesiones de la app.',
+    );
+  }
+  return secreto;
 }
+
 const EXPIRES = process.env.JWT_APP_EXPIRES ?? '60d';
 
 export interface AppClaims {
@@ -41,13 +48,13 @@ export function firmarTokenApp(sesion: AppSesion): string {
     nombre: sesion.nombre,
     tipo: 'app',
   };
-  return jwt.sign(claims, SECRET as string, { expiresIn: EXPIRES } as SignOptions);
+  return jwt.sign(claims, requireSecreto(), { expiresIn: EXPIRES } as SignOptions);
 }
 
 /** Reclamos si el token es valido y es de cliente; null en cualquier otro caso. */
 export function verificarTokenApp(token: string): AppClaims | null {
   try {
-    const dec = jwt.verify(token, SECRET as string);
+    const dec = jwt.verify(token, requireSecreto());
     if (typeof dec === 'string') return null;
     const p = dec as JwtPayload;
     if (p.tipo !== 'app' || !p.sub || !p.deviceId || typeof p.nombre !== 'string') return null;

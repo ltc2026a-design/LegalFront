@@ -17,7 +17,9 @@ function requireSecret(): string {
   return s;
 }
 
-const SECRET = requireSecret();
+// El secreto se lee AL FIRMAR/VERIFICAR, no al importar el modulo: en una funcion
+// de Vercel la app Express se construye antes de la primera peticion y un throw
+// ahi deja el despliegue como `FUNCTION_INVOCATION_FAILED` sin ninguna pista.
 const EXPIRES = process.env.JWT_EXPIRES ?? '8h';
 
 /** Reclamos que van dentro del token. */
@@ -38,13 +40,14 @@ export interface AdminSesion {
 export function firmarToken(admin: AdminSesion): string {
   const claims: AdminClaims = { sub: admin.id, nombre: admin.nombre, rol: admin.rol };
   const options = { expiresIn: EXPIRES } as SignOptions;
-  return jwt.sign(claims, SECRET, options);
+  return jwt.sign(claims, requireSecret(), options);
 }
 
 /** Devuelve los reclamos si el token es valido; null en cualquier otro caso. */
 export function verificarToken(token: string): AdminClaims | null {
+  const secreto = requireSecret();
   try {
-    const dec = jwt.verify(token, SECRET);
+    const dec = jwt.verify(token, secreto);
     if (typeof dec === 'string') return null;
     const p = dec as JwtPayload;
     if (!p.sub || typeof p.nombre !== 'string') return null;

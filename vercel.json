@@ -56,7 +56,8 @@
       "root": "backend",
       "framework": "express",
       "installCommand": "npm install",
-      "buildCommand": "npx prisma generate && npm run build"
+      "buildCommand": "npx prisma generate && npm run build",
+      "entrypoint": "server.js"
     }
   },
   "redirects": [{ "source": "/panel", "destination": "/panel/", "permanent": false }],
