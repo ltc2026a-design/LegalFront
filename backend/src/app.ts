@@ -22,6 +22,7 @@ import { adminEstructuraRouter } from './routes/admin-estructura.js';
 import { adminFuentesRouter } from './routes/admin-fuentes.js';
 import { appUsuarioRouter } from './routes/usuarios-app.js';
 import { montarFrentes } from './servir-frentes.js';
+import { prisma } from './lib/prisma.js';
 import {
   configPorDefecto,
   crearLimitadores,
@@ -44,6 +45,15 @@ const ORIGENES_DEV = [
   'tauri://localhost',
   'https://tauri.localhost',
 ];
+
+// Quita de un mensaje de error cualquier cadena `proto://usuario:contrasena@host`
+// antes de sacarlo por una ruta publica: `/api/health` informa del estado de la
+// base sin entregar nunca la credencial.
+function ocultarCredenciales(texto: string): string {
+  return texto
+    .replace(/[a-z][a-z0-9+.-]*:\/\/[^\s"'`),]+/gi, '[cadena de conexion oculta]')
+    .replace(/:[^\s/@'"`]+@/g, ':****@');
+}
 
 function allowedOrigins(): Set<string> {
   const extra = (process.env.ORIGINES_PERMITIDAS ?? '')
@@ -120,8 +130,30 @@ export function crearApp(opciones: OpcionesApp = {}): Express {
 
   // Health (preexistente desde la Zona 0). `version` es lo que confirma desde
   // fuera que el servidor ya corro el despliegue nuevo.
-  app.get('/api/health', (_req, res) => {
-    res.status(200).json({ ok: true, version: process.env.VERSION_DEPLOY ?? 'desarrollo' });
+  //
+  // `base` dice si la funcion alcanza el Postgres, y siempre se responde con 200:
+  // dentro de una funcion de Vercel un 5xx puede quedar tapado por la pagina
+  // generica del borde, y esto es lo unico que se puede leer desde un `curl`
+  // cuando algo falla. Nunca se manda la cadena de conexion: solo si las
+  // variables existen y la primera linea del error sin credenciales.
+  app.get('/api/health', async (_req, res) => {
+    const faltantes = ['DATABASE_URL', 'JWT_SECRET'].filter((k) => !(process.env[k] ?? '').trim());
+    const estado: { ok: boolean; error?: string } = { ok: false };
+    if (faltantes.length === 0) {
+      try {
+        await prisma.$queryRaw`SELECT 1`;
+        estado.ok = true;
+      } catch (error) {
+        estado.error = ocultarCredenciales(String((error as Error)?.message ?? error)).split(
+          '\n',
+        )[0];
+      }
+    } else {
+      estado.error = `faltan ${faltantes.join(', ')}`;
+    }
+    res
+      .status(200)
+      .json({ ok: true, version: process.env.VERSION_DEPLOY ?? 'desarrollo', base: estado });
   });
 
   // LIMITADOR GENERAL: toda la superficie /api (por IP).
