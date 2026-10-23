@@ -9,6 +9,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppBar from './components/AppBar';
 import BarraInferior from './components/BarraInferior';
 import AvisoSinConexion from './components/AvisoSinConexion';
+import AvisoActualizacion from './components/AvisoActualizacion';
 import { useSesion } from './hooks/sesion';
 import { tourPendiente, useTourAbierto } from './lib/tour';
 import Home from './pages/Home';
@@ -90,6 +91,12 @@ export default function App() {
           <TourBienvenida />
         </Suspense>
       )}
+      {/*
+        Publicación — aviso de versión nueva. Va en TODAS las rutas (también en las de
+        pantalla completa) porque es la única manera de que quien se queda en el chat o
+        apenas está entrando se entere de que hay una actualización; se puede posponer.
+      */}
+      <AvisoActualizacion />
       {/*
         `key={pathname}` re-monta la vista en cada cambio de ruta, que es lo que hace
         volver a correr la animacion de entrada. Solo opacidad: ver @keyframes aparecer.
