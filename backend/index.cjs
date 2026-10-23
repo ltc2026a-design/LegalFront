@@ -21,6 +21,11 @@
 //
 // El `import()` con literal es el que ve el trazador de dependencias de Vercel, y por
 // eso `dist/` viaja dentro de la funcion.
+//
+// Y `main` de `backend/package.json` apunta aqui: antes apuntaba a `dist/server.js`,
+// que hace `listen` y no exporta handler. Si cualquier parte del build resuelve la
+// entrada por el `main` del paquete, acababa ahi — y una funcion cuyo modulo principal
+// no exporta nada devuelve el mismo 500 opaco pase lo que pase en el resto del repo.
 const fs = require('node:fs');
 const express = require('express');
 
