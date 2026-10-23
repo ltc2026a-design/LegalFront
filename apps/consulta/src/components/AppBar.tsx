@@ -35,6 +35,7 @@ export default function AppBar() {
 
   return (
     <header
+      data-tour="navegacion"
       className={
         'pt-notch sticky top-0 z-10 border-b border-primary/15 bg-background/90 backdrop-blur ' +
         'transition-shadow duration-200 ' +
@@ -68,6 +69,7 @@ export default function AppBar() {
         <div className="flex items-center gap-3">
           <Link
             to="/favoritos"
+            data-tour="favoritos"
             aria-label={
               total > 0 ? `Mis favoritos (${total} guardados)` : 'Mis favoritos (sin guardados)'
             }

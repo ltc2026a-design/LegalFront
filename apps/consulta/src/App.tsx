@@ -4,12 +4,13 @@
 // Code-splitting — cada pagina interior es React.lazy para que baje en su propio chunk
 // solo cuando se visita. Home va EAGER: el requisito de producto es que los libros
 // aparezcan de inmediato al entrar, sin esperar un segundo request de JS.
-import { Suspense, lazy, useEffect } from 'react';
+import { Suspense, lazy, useEffect, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import AppBar from './components/AppBar';
 import BarraInferior from './components/BarraInferior';
 import AvisoSinConexion from './components/AvisoSinConexion';
 import { useSesion } from './hooks/sesion';
+import { tourPendiente, useTourAbierto } from './lib/tour';
 import Home from './pages/Home';
 
 const Codigo = lazy(() => import('./pages/Codigo'));
@@ -21,6 +22,7 @@ const Entrar = lazy(() => import('./pages/Entrar'));
 const Perfil = lazy(() => import('./pages/Perfil'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 const DesignPreview = lazy(() => import('./pages/DesignPreview'));
+const TourBienvenida = lazy(() => import('./components/TourBienvenida'));
 
 /**
  * While a lazy page chunk loads we keep the layout stable: a simple centered
@@ -49,6 +51,11 @@ export default function App() {
   const autenticado = Boolean(sesion);
   const enLogin = pathname === '/entrar';
 
+  // Fase 7 — el tour es un chunk aparte: solo se descarga en dispositivos que no lo han
+  // visto (o cuando la persona lo vuelve a abrir desde Perfil), nunca para quien ya terminó.
+  const tourAbierto = useTourAbierto();
+  const [pendiente] = useState(() => tourPendiente());
+
   //
   // Candado de sesion (Fase 6): sin cuenta NO se ve ninguna pantalla — la app abre en
   // /entrar y no hay forma de navegar a otro lado. Con cuenta, /entrar ya no tiene
@@ -71,6 +78,17 @@ export default function App() {
           <AvisoSinConexion />
           <BarraInferior />
         </>
+      )}
+      {/*
+        Fuera del div `key={pathname}`: el recorrido mide elementos de la pagina y esa
+        cortina no puede desmontarse cada vez que se cambia de vista. Va arriba de todo
+        (z-50) y solo en las rutas con layout, porque el login y el chat van a pantalla
+        completa.
+      */}
+      {!pantallaCompleta && (tourAbierto || pendiente) && (
+        <Suspense fallback={null}>
+          <TourBienvenida />
+        </Suspense>
       )}
       {/*
         `key={pathname}` re-monta la vista en cada cambio de ruta, que es lo que hace

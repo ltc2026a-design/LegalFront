@@ -1,9 +1,9 @@
 {
-  "version": "2026.10.23.2",
-  "url": "bundle-2026.10.23.2.zip",
-  "notes": "Logo real de la app y arranque sin Firebase",
-  "publishedAt": "2026-10-23T13:36:37.989Z",
-  "files": 42,
-  "size": 1112913,
-  "sha256": "57405990426c2f5261a0e0c016c700e06d2ceeb09a03aa96cbf03530cbaca842"
+  "version": "2026.10.23.3",
+  "url": "bundle-2026.10.23.3.zip",
+  "notes": "Tutorial de bienvenida por zonas",
+  "publishedAt": "2026-10-23T14:10:29.906Z",
+  "files": 43,
+  "size": 1116873,
+  "sha256": "df77b954eb9b3e87d118ad02b8e0b7e576244fee2edb155f78a409d6d323bb51"
 }

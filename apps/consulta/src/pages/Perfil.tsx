@@ -14,6 +14,7 @@ import Skeleton from '../components/Skeleton';
 import { useSalir, useSesion, useYo } from '../hooks/sesion';
 import { fmtFecha, iniciales } from '../lib/formato';
 import { usePreferencias } from '../lib/preferencias';
+import { abrirTour } from '../lib/tour';
 import type { EstadoGuardado } from '../lib/preferencias';
 
 const TEXTO_GUARDADO: Record<EstadoGuardado, string> = {
@@ -39,6 +40,12 @@ export default function Perfil() {
   const cerrar = () => {
     salir();
     navegar('/entrar');
+  };
+
+  // El recorrido mide zonas del inicio, así que se abre desde ahí.
+  const verTour = () => {
+    abrirTour();
+    navegar('/');
   };
 
   return (
@@ -98,6 +105,16 @@ export default function Perfil() {
           <span className="block text-xs font-medium text-texto/50">Preguntas</span>
           Preguntar al asistente
         </Link>
+        {/* Fase 7 — el recorrido sale solo en un dispositivo nuevo; este es el mismo tour
+            para quien quiera verlo otra vez (o enseñárselo a alguien más). */}
+        <button
+          type="button"
+          onClick={verTour}
+          className="aprieta min-h-11 rounded-xl border border-primary/20 bg-tarjeta px-4 py-3 text-left text-sm font-semibold text-primary-dark hover:bg-primary/5 sm:col-span-2 sm:min-h-0"
+        >
+          <span className="block text-xs font-medium text-texto/50">Ayuda</span>
+          Ver el tutorial otra vez
+        </button>
       </div>
 
       {yo.isError && (

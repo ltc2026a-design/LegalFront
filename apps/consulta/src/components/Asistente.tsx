@@ -39,7 +39,7 @@ export default function Asistente() {
   }
 
   return (
-    <Card sinAnimacion className="overflow-hidden">
+    <Card sinAnimacion data-tour="asistente" className="overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/10 bg-surface px-4 py-3">
         <h2 className="font-sans text-base font-semibold text-primary-dark">
           Asistente: pregúntame tu duda

@@ -17,6 +17,8 @@ interface Tab {
   icono: (activo: boolean) => ReactNode;
   /** true = termina en / (el NavLink necesita `end` para no quedar activo siempre). */
   exacto?: boolean;
+  /** Marca para el tour de bienvenida (lib/tour.ts): sin esto, el paso sale centrado. */
+  tour?: string;
 }
 
 const trazo = { fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round', strokeLinejoin: 'round' } as const;
@@ -55,6 +57,7 @@ const TABS: Tab[] = [
   {
     a: '/favoritos',
     etiqueta: 'Favoritos',
+    tour: 'favoritos',
     icono: (activo) => (
       <svg
         viewBox="0 0 24 24"
@@ -103,6 +106,7 @@ export default function BarraInferior() {
   return (
     <nav
       aria-label="Navegación principal"
+      data-tour="navegacion"
       className="pb-seguro fixed inset-x-0 bottom-0 z-20 border-t border-primary/15 bg-background/95 backdrop-blur sm:hidden"
     >
       <ul
@@ -114,6 +118,7 @@ export default function BarraInferior() {
             <NavLink
               to={tab.a}
               end={tab.exacto}
+              data-tour={tab.tour}
               className={({ isActive }) =>
                 'aprieta relative flex flex-col items-center gap-0.5 rounded-xl py-1.5 transition-colors duration-200 ' +
                 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ' +

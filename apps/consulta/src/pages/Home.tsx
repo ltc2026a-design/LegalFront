@@ -139,7 +139,7 @@ export default function Home() {
 
       <ApartadosClave />
 
-      <section aria-labelledby="biblioteca-titulo" className="space-y-5">
+      <section data-tour="biblioteca" aria-labelledby="biblioteca-titulo" className="space-y-5">
         <h2 id="biblioteca-titulo" className="font-sans text-lg font-semibold text-primary-dark">
           Biblioteca de códigos
         </h2>

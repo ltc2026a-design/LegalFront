@@ -342,6 +342,7 @@ export default function Buscador({
       ref={cajaRef}
       onSubmit={enviar}
       role="search"
+      data-tour="buscador"
       className="relative flex w-full items-stretch gap-2"
     >
       <input
