@@ -7,20 +7,22 @@
 // (ENTRYPOINT_NOT_FOUND). Este archivo si viaja en el repo y levanta la app
 // compilada, que es la que realmente atiende las peticiones.
 //
-// El envoltorio con try/catch existe porque dentro de una funcion de Vercel no
-// hay forma de ver el stack desde fuera: si el modulo revienta al importarse
-// (falta una variable de entorno, no esta el binario nativo de argon2, el
-// `dist/` no viajo en el bundle) el navegador solo recibe
-// `FUNCTION_INVOCATION_FAILED`. Aqui se responde en JSON la causa, sin valores.
+// Dos golpes que dejaron forma a este archivo:
+//
+// 1. El `import()` de `dist/vercel.js` es LAZY, dentro del handler. Un `await`
+//    en nivel global no cabe en el formato con el que el receiver de Vercel
+//    transpila la entrada y revienta antes de correr nada.
+// 2. Cada fallo se responde en JSON, con MARCA para saber que este codigo ya
+//    esta publicado. Dentro de una funcion de Vercel no hay forma de ver el
+//    stack desde fuera, y si el modulo cae al importarse (falta una variable de
+//    entorno, no viajó el binario nativo de argon2, no está el `dist/`) el
+//    navegador solo recibia `FUNCTION_INVOCATION_FAILED`. Nunca se imprimen
+//    valores de las variables.
+const MARCA = 'shim-v2';
+const CLAVES = ['DATABASE_URL', 'JWT_SECRET', 'ENV_FILE', 'TRUST_PROXY', 'VERCEL_URL'];
+
 let app;
 let fallo;
-try {
-  ({ default: app } = await import('./dist/vercel.js'));
-} catch (error) {
-  fallo = error;
-}
-
-const CLAVES = ['DATABASE_URL', 'JWT_SECRET', 'ENV_FILE', 'TRUST_PROXY', 'VERCEL_URL'];
 
 function ocultar(texto) {
   return String(texto ?? '')
@@ -28,41 +30,50 @@ function ocultar(texto) {
     .slice(0, 500);
 }
 
-export default function handler(req, res) {
+async function cargar() {
+  if (app || fallo) return;
+  try {
+    ({ default: app } = await import('./dist/vercel.js'));
+  } catch (error) {
+    fallo = error;
+  }
+}
+
+function responder(res, cuerpo) {
+  res.statusCode = 500;
+  res.setHeader('content-type', 'application/json; charset=utf-8');
+  res.end(JSON.stringify(cuerpo, null, 2));
+}
+
+export default async function handler(req, res) {
+  await cargar();
   if (fallo) {
-    res.statusCode = 500;
-    res.setHeader('content-type', 'application/json; charset=utf-8');
-    res.end(
-      JSON.stringify(
-        {
-          ok: false,
-          error: 'el modulo de la funcion no arranco',
-          tipo: fallo?.name,
-          detalle: ocultar(fallo?.message),
-          pila: ocultar(
-            String(fallo?.stack ?? '')
-              .split('\n')
-              .slice(0, 6)
-              .join(' | '),
-          ),
-          entorno: Object.fromEntries(CLAVES.map((k) => [k, Boolean(process.env[k]?.trim())])),
-        },
-        null,
-        2,
+    responder(res, {
+      ok: false,
+      marca: MARCA,
+      error: 'el modulo de la funcion no arranco',
+      tipo: fallo?.name,
+      detalle: ocultar(fallo?.message),
+      pila: ocultar(
+        String(fallo?.stack ?? '')
+          .split('\n')
+          .slice(0, 6)
+          .join(' | '),
       ),
-    );
+      entorno: Object.fromEntries(
+        CLAVES.map((clave) => [clave, Boolean(process.env[clave]?.trim())]),
+      ),
+    });
     return;
   }
   try {
     app(req, res);
   } catch (error) {
-    res.setHeader('content-type', 'application/json; charset=utf-8');
-    res.end(
-      JSON.stringify({
-        ok: false,
-        error: 'excepcion al atender',
-        detalle: ocultar(error?.message ?? error),
-      }),
-    );
+    responder(res, {
+      ok: false,
+      marca: MARCA,
+      error: 'excepcion al atender',
+      detalle: ocultar(error?.stack ?? error?.message ?? error),
+    });
   }
 }
