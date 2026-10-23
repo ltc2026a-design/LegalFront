@@ -6,7 +6,6 @@ import { Capacitor } from '@capacitor/core';
 import App from './App';
 import { queryClient } from './lib/queryClient';
 import { confirmarArranque, revisarActualizaciones } from './lib/actualizaciones';
-import { initNativePush } from './lib/push-native';
 // Fase 4 — importar el store aplica el tema y la letra guardados ANTES del primer
 // paint (si no, la portada parpadea en claro al abrir con tema oscuro).
 import { sincronizarAlArrancar } from './lib/preferencias';
@@ -33,13 +32,15 @@ if ('serviceWorker' in navigator) {
 // este telefono en cuanto responde el servidor (offline se queda lo local).
 void sincronizarAlArrancar();
 
-// Zona 10 — Push nativo (Capacitor). En la web (isNativePlatform() === false) esto
-// NO se ejecuta: el flujo web queda en push.ts (Zona 9). En el APK registrado como
-// 'android' en /app/dispositivos (requiere google-services.json de Firebase: TODO).
+// Zona 10 — Live Updates. El aviso de arranque le dice al plugin que este bundle
+// funciona; si la app volviera a fallar al iniciar, el plugin revierte solo al
+// bundle anterior. Es la red de seguridad del flujo.
+//
+// El push NATIVO (PushNotifications/LocalNotifications) ya no se inicializa aqui: los
+// dos plugins se quitaron del APK porque, sin `google-services.json`, nunca registraban
+// token y su unico efecto en el arranque era levantar Firebase y WorkManager. Volver a
+// ponerlos es un TODO atado a las credenciales Firebase del dueño.
 if (Capacitor.isNativePlatform()) {
-  void initNativePush().catch(() => undefined);
-  // Live Updates — el aviso de arranque es lo que le dice al plugin que este bundle
-  // funciona; si la app volviera a caer al iniciar, el plugin revierte solo al anterior.
   void confirmarArranque();
   // Se deja unos segundos de margen para no competir con el primer paint ni con la
   // cache de los libros. Si no hay red, simplemente no hay update en este arranque.

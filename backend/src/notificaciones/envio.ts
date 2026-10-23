@@ -144,8 +144,9 @@ async function pushWeb(
 // indisponibles en este entorno. Ver TODOs al pie de cada funcion.
 
 /** TODO (Zona 10): usar Firebase Cloud Messaging (server key / cuenta de servicio
- *  del proyecto del dueño + plugin @capacitor/push-notifications en el cliente).
- *  El token nativo ya queda guardado en DispositivoPush.tokenPush (raw). */
+ *  del proyecto del dueño + plugin @capacitor/push-notifications en el cliente, que se
+ *  quitó del APK porque sin google-services.json nunca registraba token).
+ *  El alta del lado del servidor ya está: tokenPush (raw) en DispositivoPush. */
 function pushFCM(d: Destinatario, payload: PayloadPush): void {
   console.log(
     `[push:android] pendiente (Zona 10) — FCM no configurado; titulo="${payload.titulo}" (dispositivo id=${d.id}).`,
